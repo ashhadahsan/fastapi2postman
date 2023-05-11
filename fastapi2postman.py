@@ -65,7 +65,7 @@ def main():
         collection["item"].append(item)
 
     with open(args.output, "w") as f:
-        json.dump(collection, f)
+        json.dump(collection, f, indent=4)
 
 
 if __name__ == "__main__":
