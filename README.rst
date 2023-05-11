@@ -1,10 +1,10 @@
 .. _Postman: https://www.postman.com/
 .. _FastAPI: https://fastapi.tiangolo.com/
-
 .. _flask2postman: https://github.com/numberly/flask2postman/
-=============
+
+================
 fastapi2postman
-=============
+================
 
 .. image:: https://img.shields.io/pypi/v/flask2postman.svg
    :target: https://pypi.org/project/fastapi2postman

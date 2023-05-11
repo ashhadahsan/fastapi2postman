@@ -1,9 +1,12 @@
 from setuptools import setup, find_packages
 
+with open("README.rst") as file:
+    long_description = file.read()
 setup(
     name="fastapi2postman",
-    version="0.1.0",
+    version="0.1.2",
     description="FastAPI APIs to Postman collections",
+    long_description=long_description,
     author="Ashhad Ahsan Rehman",
     license="MIT",
     author_email="ashhadahsan@gmail.com",
