@@ -1,2 +1,5 @@
 
 *.pyc
+build
+dist
+fastapi2postman.egg-info
