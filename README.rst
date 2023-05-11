@@ -1,6 +1,7 @@
 .. _Postman: https://www.postman.com/
-.. _FastAPI: https://fastapi.tiangolo.com//
+.. _FastAPI: https://fastapi.tiangolo.com/
 
+.. _flask2postman: https://github.com/numberly/flask2postman/
 =============
 fastapi2postman
 =============
@@ -13,6 +14,8 @@ fastapi2postman
 |
 
 A tool that creates a Postman_ collection from a FastAPI_ application.
+
+Inspired from flask2postman_
 
 
 Install
@@ -32,13 +35,13 @@ You just need to tell :code:`fastapi2postman`
 
 .. code-block:: sh
 
-    $ flask2postman --app app.py 
+    $ fastapi2postman --app app.py 
 
 If you want to change the name of the output file use --output flag, the default name is ofcousre output.json
 
 .. code-block:: sh
 
-    $ flask2postman --app app.py --output output.json
+    $ fastapi2postman --app app.py --output output.json
 
 This will generate the JSON configuration, and write it into the
 :code:`output.json` file. You can then import this file into Postman ("Import
