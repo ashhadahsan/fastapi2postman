@@ -15,7 +15,7 @@ jobs:
         run: |
           version="$(uv version --short)"
           if [ "v$version" != "$GITHUB_REF_NAME" ]; then
-            echo "::error::Tag $GITHUB_REF_NAME doesn't match version $version in pyproject.toml. Merge the release PR first, then tag the merge commit."
+            echo "::error::Tag $GITHUB_REF_NAME doesn't match version $version in pyproject.toml. Merge the release PR first, then tag main."
             exit 1
           fi
       - run: uv build
