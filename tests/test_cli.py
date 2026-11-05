@@ -5,6 +5,7 @@ import sys
 from importlib import metadata
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import pytest
 
@@ -190,3 +191,128 @@ def test_version_flag(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFix
         run(monkeypatch, "--version")
     assert stopped.value.code == 0
     assert capsys.readouterr().out.strip() == metadata.version("fastapi2postman")
+
+
+AUDITED = """
+from fastapi import APIRouter, Depends, FastAPI
+from fastapi.security import HTTPBearer
+from fastapi.staticfiles import StaticFiles
+app = FastAPI()
+router = APIRouter(prefix="/orders", tags=["orders"])
+@router.post("")
+def create(): ...
+app.include_router(router)
+@app.get("/health")
+def health(): ...
+@app.get("/internal", include_in_schema=False)
+def internal(): ...
+@app.get("/me", dependencies=[Depends(HTTPBearer())])
+def me(): ...
+app.mount("/static", StaticFiles(directory=".", check_dir=False))
+"""
+
+
+def command(monkeypatch: pytest.MonkeyPatch, *args: str) -> int:
+    """Run a command and return its exit code."""
+    monkeypatch.setattr(sys, "argv", ["fastapi2postman", *args])
+    try:
+        main()
+    except SystemExit as stopped:
+        return stopped.code if isinstance(stopped.code, int) else 1
+    return 0
+
+
+def lines(text: str) -> list[list[str]]:
+    return [line.split() for line in text.splitlines() if line.strip()]
+
+
+def test_routes_lists_each_route_with_its_auth(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    write("routes_mod.py", AUDITED)
+    assert command(monkeypatch, "routes", "--app", "routes_mod.py") == 0
+    assert capsys.readouterr().out.splitlines() == [
+        "METHOD  PATH       AUTH        TAGS    NOTE",
+        "GET     /health    -           -",
+        "GET     /internal  -           -       hidden from the docs",
+        "GET     /me        HTTPBearer  -",
+        "POST    /orders    -           orders",
+        "*       /static    ?           -       can't read: StaticFiles",
+    ]
+
+
+def test_routes_reports_an_app_it_cannot_load(monkeypatch: pytest.MonkeyPatch):
+    with pytest.raises(SystemExit, match="cannot find"):
+        monkeypatch.setattr(sys, "argv", ["fastapi2postman", "routes", "--app", "nope_routes_mod"])
+        main()
+
+
+def test_audit_fails_and_lists_what_is_open(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    write("audit_a_mod.py", AUDITED)
+    assert command(monkeypatch, "audit", "--app", "audit_a_mod.py") == 1
+    out = capsys.readouterr().out
+    assert out.splitlines()[0] == "4 of 5 routes have no visible auth:"
+    assert lines(out)[1:5] == [
+        ["GET", "/health", "no", "auth"],
+        ["GET", "/internal", "no", "auth,", "hidden", "from", "the", "docs"],
+        ["POST", "/orders", "no", "auth"],
+        ["*", "/static", "can't", "read:", "StaticFiles"],
+    ]
+    assert "--allow" in out
+    assert "/me" not in out
+
+
+def test_audit_passes_when_the_open_routes_are_allowed(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    write("audit_b_mod.py", AUDITED)
+    allowed = ["--allow", "/health", "--allow", "/internal", "--allow", "POST /orders", "--allow", "/static*"]
+    assert command(monkeypatch, "audit", "--app", "audit_b_mod.py", *allowed) == 0
+    assert capsys.readouterr().out == "5 routes: 1 with auth, 4 allowed\n"
+
+
+@pytest.mark.parametrize(
+    ("pattern", "still_open"),
+    [
+        ("/health", 3),
+        ("GET /health", 3),
+        ("POST /health", 4),  # the wrong method allows nothing
+        ("/*", 0),
+        ("GET *", 2),
+        ("/orders*", 3),
+    ],
+)
+def test_audit_allow_patterns(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture, pattern: str, still_open: int
+):
+    name = f"audit_{uuid4().hex}"
+    write(f"{name}.py", AUDITED)
+    code = command(monkeypatch, "audit", "--app", f"{name}.py", "--allow", pattern)
+    out = capsys.readouterr().out
+    assert code == (1 if still_open else 0)
+    if still_open:
+        assert out.splitlines()[0] == f"{still_open} of 5 routes have no visible auth:"
+
+
+def test_audit_warns_about_an_allow_that_matches_nothing(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture
+):
+    # A stale allow list hides nothing today, but it would silently open up a route added under that name later.
+    write("audit_c_mod.py", AUDITED)
+    command(monkeypatch, "audit", "--app", "audit_c_mod.py", "--allow", "/gone")
+    assert "--allow '/gone' matches no route" in capsys.readouterr().err
+
+
+def test_audit_passes_with_nothing_to_report(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    write("audit_d_mod.py", app_source())
+    assert command(monkeypatch, "audit", "--app", "audit_d_mod.py") == 0
+    assert capsys.readouterr().out == "0 routes: 0 with auth, 0 allowed\n"
+
+
+def test_the_commands_need_an_app(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    assert command(monkeypatch, "routes") == 2
+    assert command(monkeypatch, "audit") == 2
+    assert "--app" in capsys.readouterr().err
+
+
+def test_help_mentions_the_commands(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture):
+    assert command(monkeypatch, "--help") == 0
+    out = capsys.readouterr().out
+    assert "routes" in out
+    assert "audit" in out
