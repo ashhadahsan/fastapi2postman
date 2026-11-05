@@ -4,6 +4,8 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-05
+
 ### Added
 
 - Sample values for path, query and header parameters, and sample bodies for JSON, form and file-upload requests. They follow your `Field` limits, enums, formats, defaults and declared examples. Optional parameters start switched off.
@@ -39,5 +41,6 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 The last release before this changelog started.
 
-[Unreleased]: https://github.com/ashhadahsan/fastapi2postman/commits/main
+[Unreleased]: https://github.com/ashhadahsan/fastapi2postman/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ashhadahsan/fastapi2postman/releases/tag/v0.2.0
 [0.1.2]: https://pypi.org/project/fastapi2postman/0.1.2/

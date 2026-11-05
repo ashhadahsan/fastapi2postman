@@ -1,6 +1,6 @@
 [project]
 name = "fastapi2postman"
-version = "0.1.2"
+version = "0.2.0"
 description = "Turn a FastAPI app into a Postman collection you can run straight away."
 readme = "README.md"
 license = "MIT"
