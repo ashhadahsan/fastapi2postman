@@ -27,7 +27,7 @@ $ ./tests/newman.sh
 ## Releasing
 
 1. Open a `release-X.Y.Z` pull request to `main`: bump `version` in `pyproject.toml`, run `uv lock`, and move `[Unreleased]` in `CHANGELOG.md` into a dated section with its links.
-2. Merge it.
-3. Tag the merge commit, in that order: `git fetch origin && git tag vX.Y.Z origin/main && git push origin vX.Y.Z`. A tag that doesn't match the version in `pyproject.toml` fails the `release` run before anything is published.
+2. Merge it with **Rebase and merge**. `main` doesn't accept merge commits.
+3. Tag `main`, in that order: `git fetch origin && git tag vX.Y.Z origin/main && git push origin vX.Y.Z`. A tag that doesn't match the version in `pyproject.toml` fails the `release` run before anything is published.
 4. Approve the `pypi` deployment in that run.
 5. Create the GitHub release from the changelog section.
