@@ -50,6 +50,44 @@ Secret variables start blank, so the file holds no credentials. You fill them in
 
 **Auth the schema can't show.** Middleware, or a dependency that reads `request.headers`, doesn't appear in OpenAPI. Use `--bearer` to send `{{bearerToken}}` on every request that has no auth of its own.
 
+## Check your routes
+
+Two more commands read the routes themselves, so they also see what the schema leaves out: routes hidden from the docs, websockets, and plain Starlette routes.
+
+`routes` lists everything the app serves and what protects it, like `flask routes`:
+
+```console
+$ fastapi2postman routes --app main.py
+METHOD  PATH       AUTH        TAGS    NOTE
+GET     /health    -           -
+GET     /internal  -           -       hidden from the docs
+GET     /me        HTTPBearer  -
+POST    /orders    -           orders
+*       /static    ?           -       can't read: StaticFiles
+```
+
+`audit` fails when a route has no visible auth, so a route merged without its `Depends()` turns CI red:
+
+```console
+$ fastapi2postman audit --app main.py --allow "/health" --allow "/static*"
+2 of 5 routes have no visible auth:
+
+  GET   /internal  no auth, hidden from the docs
+  POST  /orders    no auth
+
+Protect them, or allow the ones meant to be open, for example --allow "/health" or --allow "GET /public/*".
+```
+
+It exits with 1 when it finds any, and 0 otherwise. `--allow` takes a path or a method and a path, and `*` matches anything, including `/`. An `--allow` that matches no route prints a warning, because it could let a route added later through unnoticed.
+
+Auth counts when a route's dependencies declare it, at any depth: a security scheme such as `HTTPBearer`, or a required header, query parameter or cookie named like a credential, such as `x_token` or `session_id`.
+
+**`audit` reads what routes declare and doesn't run them.** So:
+
+- Auth in middleware, or in a dependency reading `request.headers`, looks like no auth. Allow those routes.
+- A dependency that declares a token but never checks it still counts as auth. So does `auto_error=False`, which `routes` shows as `HTTPBearer (optional)`.
+- Plain Starlette routes and mounted apps such as `StaticFiles` have nothing to read, so they're always flagged until you allow them.
+
 ## Pointing it at your app
 
 Run it from your project root.

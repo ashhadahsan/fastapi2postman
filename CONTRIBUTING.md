@@ -21,4 +21,5 @@ $ ./tests/newman.sh
 
 - **Commits.** Use [Conventional Commits](https://www.conventionalcommits.org/): `feat:`, `fix:`, `docs:`, `test:`, `ci:`, `chore:`. Keep pull requests small.
 - **Changelog.** Add user-visible changes to `CHANGELOG.md` under `[Unreleased]`.
-- **Dependencies.** FastAPI stays the only runtime dependency. Read everything from `app.openapi()`, not from FastAPI's routing internals: walking `app.routes` is what lost router routes when FastAPI 0.137 changed them.
+- **Dependencies.** FastAPI stays the only runtime dependency. The collection reads everything from `app.openapi()`, not from FastAPI's routing internals: walking `app.routes` is what lost router routes when FastAPI 0.137 changed them.
+- **`routes` and `audit`.** These are the exception, because they must see what the schema hides, so `routes.py` reads the internals. Anything it doesn't recognise has to be reported as unreadable, never skipped, so that a FastAPI change makes the audit fail instead of hiding routes from it.

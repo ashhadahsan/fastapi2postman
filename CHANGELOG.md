@@ -4,6 +4,11 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+### Added
+
+- `fastapi2postman routes` lists every route the app serves with what protects it, like `flask routes`. It also shows routes hidden from the docs, websockets and plain Starlette routes.
+- `fastapi2postman audit` fails when a route has no visible auth, so a route merged without its `Depends()` turns CI red. Routes meant to be open are allowed with `--allow`.
+
 ## [0.2.0] - 2026-11-05
 
 ### Added
