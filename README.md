@@ -1,7 +1,7 @@
 # fastapi2postman
 
-[![PyPI](https://img.shields.io/pypi/v/fastapi2postman?cacheSeconds=3600)](https://pypi.org/project/fastapi2postman/)
-[![Python](https://img.shields.io/pypi/pyversions/fastapi2postman?cacheSeconds=3600)](https://pypi.org/project/fastapi2postman/)
+[![PyPI](https://img.shields.io/pypi/v/fastapi2postman)](https://pypi.org/project/fastapi2postman/)
+[![Python](https://img.shields.io/pypi/pyversions/fastapi2postman)](https://pypi.org/project/fastapi2postman/)
 [![CI](https://github.com/ashhadahsan/fastapi2postman/actions/workflows/ci.yml/badge.svg)](https://github.com/ashhadahsan/fastapi2postman/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/ashhadahsan/fastapi2postman/blob/main/LICENSE)
 
@@ -16,6 +16,8 @@ output.json: 25 requests
 Import `output.json` into Postman, fill in the collection's variables, and send the login request. The token is saved for every other request.
 
 Install it in the same environment as your app, because it imports the app to read its schema. Everything comes from `app.openapi()`, so what shows in your `/docs` shows in the collection.
+
+Two more commands check the app itself: `fastapi2postman routes` lists every route with what protects it, and `fastapi2postman audit` fails CI when a route has no visible auth. See [Check your routes](#check-your-routes).
 
 ## What's in the collection
 
