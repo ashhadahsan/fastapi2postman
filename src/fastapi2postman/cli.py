@@ -1,84 +1,89 @@
+"""The fastapi2postman command."""
+
 import argparse
 import json
 import os
 import sys
-import importlib
-from fastapi.routing import APIRoute
+from importlib import import_module, metadata
+from pathlib import Path
+
+from fastapi import FastAPI
+
+from . import to_postman
 
 
-def register_routes(app):
-    routes = []
-    for route in app.routes:
-        if isinstance(route, APIRoute):
-            routes.append(
-                {
-                    "name": route.name,
-                    "method": ",".join(route.methods),
-                    "url": str(route.path),
-                    "path": str(route.path).replace("{", ":").replace("}", ""),
-                }
-            )
-    return routes
+def _module_of(path: Path) -> tuple[str, Path]:
+    """The dotted name of a file and the folder to import it from, which is above its package if it's in one."""
+    parts = [path.stem]
+    root = path.parent
+    while (root / "__init__.py").is_file():
+        parts.insert(0, root.name)
+        root = root.parent
+    return ".".join(parts), root
 
 
-def main():
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--output", type=str, help="Output file", default="output.json")
-    parser.add_argument(
-        "--name", type=str, help="Collection name", default="FastAPI API"
+def _load_app(spec: str) -> FastAPI:
+    target, attribute = spec, "app"
+    if ":" in spec and not Path(spec).is_file():  # a colon can be part of a path: C:\project\app.py
+        target, attribute = spec.rsplit(":", 1)
+
+    name = target
+    search = [os.getcwd()]  # a console script has its own folder on sys.path, not the project's
+    if Path(target).is_file():
+        name, root = _module_of(Path(target).resolve())
+        search.insert(0, str(root))
+    sys.path[:0] = search
+
+    try:
+        module = import_module(name)
+    except ModuleNotFoundError as error:
+        if error.name != name and not name.startswith(f"{error.name}."):
+            raise  # something the app itself imports is missing, and the traceback says what
+        raise SystemExit(
+            f"fastapi2postman: cannot find {target!r}: give a .py file, or a module importable from {os.getcwd()}"
+        ) from error
+    if not hasattr(module, attribute):
+        raise SystemExit(f"fastapi2postman: {name} has no attribute {attribute!r}")
+
+    app = getattr(module, attribute)
+    if not isinstance(app, FastAPI) and callable(app):
+        app = app()  # a factory
+    if not isinstance(app, FastAPI):
+        raise SystemExit(f"fastapi2postman: {spec} gives {type(app).__name__}, not a FastAPI app")
+    return app
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        prog="fastapi2postman", description="Turn a FastAPI app into a Postman collection you can run straight away."
     )
-    parser.add_argument("--host", type=str, help="API host", default="localhost")
-    parser.add_argument("--port", type=int, help="API port", default=8000)
     parser.add_argument(
         "--app",
-        type=str,
-        help="Path to FastAPI application instance; can be a .py file or module:attribute",
-        default="app.py",
         required=True,
+        help="the app: main.py, main.py:api or package.main:api. The name defaults to app, and may be a factory",
     )
+    parser.add_argument("--output", default="output.json", help="output file (default: %(default)s)")
+    parser.add_argument("--name", help="collection name (default: the app's title)")
+    parser.add_argument(
+        "--base-url", help="where the requests go (default: the app's first server, else http://localhost:8000)"
+    )
+    parser.add_argument("--host", help="shorthand for --base-url http://HOST:PORT")
+    parser.add_argument("--port", type=int, help="shorthand for --base-url http://HOST:PORT")
+    parser.add_argument(
+        "--bearer",
+        action="store_true",
+        help="send {{bearerToken}} on every request without auth of its own: for auth in middleware, or in a "
+        "dependency reading request.headers, which the app's schema can't show",
+    )
+    parser.add_argument("--version", action="version", version=metadata.version("fastapi2postman"))
     args = parser.parse_args()
 
-    app_path = args.app
+    base_url = args.base_url
+    if not base_url and (args.host or args.port):
+        base_url = f"http://{args.host or 'localhost'}:{args.port or 8000}"
 
-    if os.path.isfile(app_path) and app_path.endswith(".py"):
-        app_dir, app_file = os.path.split(app_path)
-        sys.path.append(app_dir or ".")
-        app_name, _ = os.path.splitext(app_file)
-        module = __import__(app_name)
-        app = getattr(module, "app")
-
-    elif ":" in app_path:
-        module_name, attr = app_path.split(":", 1)
-        module = importlib.import_module(module_name)
-        app = getattr(module, attr)
-    else:
-        parser.error(
-            "--app must be a Python file (.py) or module:attribute format"
-        )
-        return
-
-    routes = register_routes(app)
-    collection = {
-        "info": {
-            "name": args.name,
-            "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-        },
-        "item": [],
-    }
-
-    for route in routes:
-        item = {
-            "name": route["name"],
-            "request": {
-                "url": f'http://{args.host}:{args.port}{route["url"]}',
-                "method": route["method"],
-            },
-        }
-        collection["item"].append(item)
-
-    with open(args.output, "w") as f:
-        json.dump(collection, f, indent=4)
-
-
-if __name__ == "__main__":
-    main()
+    collection = to_postman(_load_app(args.app), name=args.name, base_url=base_url, bearer=args.bearer)
+    text = json.dumps(collection, indent=2, ensure_ascii=False)
+    Path(args.output).write_text(text + "\n", encoding="utf-8")
+    count = sum(len(entry.get("item", [entry])) for entry in collection["item"])
+    print(f"{args.output}: {count} requests")
