@@ -1,0 +1,22 @@
+name: Bug
+description: Something doesn't work as documented
+labels: [bug]
+body:
+  - type: input
+    id: version
+    attributes: {label: fastapi2postman version, placeholder: "0.2.0"}
+    validations: {required: true}
+  - type: input
+    id: fastapi
+    attributes: {label: FastAPI version, placeholder: "0.162.0"}
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal example
+      description: The smallest app that shows the problem, and the command you ran. Remove keys and private URLs.
+      render: python
+    validations: {required: true}
+  - type: textarea
+    id: expected
+    attributes: {label: What you expected in the collection, and what you got instead}
+    validations: {required: true}

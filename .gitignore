@@ -1,5 +1,15 @@
+# the default output file
+output.json
 
-*.pyc
-build
-dist
-fastapi2postman.egg-info
+# python
+__pycache__/
+*.py[cod]
+.venv/
+build/
+dist/
+wheels/
+*.egg-info
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
