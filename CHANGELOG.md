@@ -4,6 +4,8 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-05
+
 ### Added
 
 - `fastapi2postman routes` lists every route the app serves with what protects it, like `flask routes`. It also shows routes hidden from the docs, websockets and plain Starlette routes.
@@ -46,6 +48,7 @@ All notable changes are documented here. The format follows [Keep a Changelog](h
 
 The last release before this changelog started.
 
-[Unreleased]: https://github.com/ashhadahsan/fastapi2postman/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ashhadahsan/fastapi2postman/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ashhadahsan/fastapi2postman/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ashhadahsan/fastapi2postman/releases/tag/v0.2.0
 [0.1.2]: https://pypi.org/project/fastapi2postman/0.1.2/
